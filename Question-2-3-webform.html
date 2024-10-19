@@ -29,33 +29,48 @@
         <h1>Feedback form</h1>
     <form>
         <div class="control">
-          <label>Full name <span class="required">*</span></label><input id="name" name="name" type="text" />
+          <!-- added for="" and new tag <span> to show error message-->
+          <label for="name">Full name <span class="required">*</span></label>
+          <input id="name" name="name" type="text" />
+          <span id="name-msg"></span> 
         </div>
         <div class="control">
-          <label>Biography</label><textarea id="biography" name="biography" type="text"></textarea>
+          <label for="biography">Biography</label>  <!-- added for="" and new tag <span> to show error message-->
+          <textarea id="biography" name="biography" ></textarea>
           <span>Include examples on your skills in JavaScript.</span>
+          <span id="biography-msg"></span>
         </div>
-        
-          <div>Gender</div>
+        <fieldset> <!-- added -->
+        <legend>Gender</legend><!-- added -->
+         
           <div class="control">
-            <input id="gender_male" name="gender" type="radio" value="male" /><label>Male</label>
+            <input id="gender_male" name="gender" type="radio" value="male" />
+            <label for="gender_male">Male</label><!-- added for="" -->
+           
           </div>
           <div class="control">
-            <input id="gender_female" name="gender" type="radio" value="female" /><label>Female</label>
+            <input id="gender_female" name="gender" type="radio" value="female" />
+            <label for="gender_female">Female</label> <!-- added for="" -->
+         
+          </div>
+          <span id="gender-msg"></span>  <!-- added new tag <span> to show error message-->
+        </fieldset>
+     
+          <div class="control">
+            <input id="accept_agbs" name="accept_agbs" type="checkbox" value="1" />
+            <label for="accept_agbs">I accept the terms and conditions</label><!-- added for="" -->
+            <span id="accept_agbs-msg"></span> <!--fixed: add new tag to show error message-->
+          </div>
+           <div class="control">
+            <input name="validate" type="hidden" value="1" />
+            <input type="submit" value="Register" />
           </div>
         
-        <div class="control">
-          <input id="accept_agbs" name="accept_agbs" type="checkbox" value="1" /><label>I accept the terms and conditions</label>
-        </div>
-        <div class="control">
-          <input name="validate" type="hidden" value="1" /><input type="submit" value="Register" />
-        </div>
       </form>
       
           <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
           <script>"use strict";
-      
-      ;
+            
       (function () {
         var validateInput;
       
@@ -73,10 +88,14 @@
         validateInput = function validateInput(input, message) {
           var $elementToDescribe, $error, $errorContainer, $fieldset, $input, $referencedElement, value;
           $input = $('[name="' + input + '"]');
-      
+          //fixed
+          var $fieldError = $('#' + input + '-msg'); //fixed: show Error span next to the field
+          $fieldError.html(''); //clear any previous message
+         
           if ((value = $.urlParam(input)) === null) {
             if ($('fieldset.errors').length === 0) {
               $('form').prepend('<fieldset class="errors"><legend>Errors</legend><ul></ul></fieldset>');
+              $errorContainer = $('fieldset.errors ul');
             }
       
             $referencedElement = null;
@@ -84,53 +103,75 @@
             $errorContainer = $('fieldset.errors ul');
       
             if ($input.is(':radio')) {
-              $fieldset = $input.closest('fieldset');
+              $fieldset = $input.closest('fieldset').attr('aria-describedby', input + '_description');            
               $elementToDescribe = $fieldset;
               $referencedElement = $input.filter(':first');
             } else {
               $elementToDescribe = $input;
               $referencedElement = $input;
+            
             }
       // R.G. hint: fix next line ;)
-            $error = $('<a>' + message + '</a>');
+            //fixed 
+            $error = $('<a href="#">' + message + '</a>');            
+            var $fieldErrorMessage = $('<span class="error">' + message + '</span>');
+           
             $error.click(function (e) {
               // If we rely on the link's href pointing to the input's ID, it doesn't trigger forms mode in screen readers
-              $referencedElement.focus();
-              return e.preventDefault();
+             $referencedElement.focus();
+             return e.preventDefault();
             });
             $elementToDescribe.attr('aria-describedby', input + '_description');
             $errorContainer.append('<li>').find('li:last').append($error);
       
-            if ($(':not(form):focus').length === 0) {
+            //fixed
+            $fieldError.html($fieldErrorMessage);
+            $fieldError.attr('aria-live', 'polite'); 
+
+            if ($(':not(body):focus').length === 0) {
               // See https://stackoverflow.com/questions/46134247/jquery-setting-focus-doesnt-work-in-ie11/
-            
+              $referencedElement.focus();
             }
           } else {
             if ($input.is(':checkbox')) {
               $input.attr('checked', true);
             }
       
-            if ($input.is(':radio')) {
-              return $input.filter('[value="' + value + '"]').attr('checked', true);
-            } else {
-              return $input.val(value);
-            }
+            if ($input.is(':checkbox') || $input.is(':radio')) {
+              $input.prop('checked', true);
+              } else {
+                $input.val(value);
+              }
           }
         };
       
         $(document).ready(function () {
           if ($.urlParam('validate')) {
+            // fixed: Clear any existing error summary
+            $('fieldset.errors').remove();
+
             validateInput('name', 'Please enter your name!');
             validateInput('biography', 'Please tell us something about your history!');
             validateInput('gender', 'Please tell us your gender!');
             validateInput('accept_agbs', 'You must accept our terms and conditions!');
-      
-            if ($('.error').length === 0) {
-              return alert('All inputs are valid.');
+            if ($('fieldset.errors').length === 0) {
+            // Use an aria-live region for screen readers
+            if ($('#success-message').length === 0) {
+              $('form').prepend('<div id="success-message" aria-live="polite">All inputs are valid.</div>');
+            }
+            // Announce success and focus on success message
+            return alert('All inputs are valid.');
+          } else {
+            // Focus on the error summary if there are errors
+            $('fieldset.errors').focus();
             }
           }
         });
-      }).call(void 0);</script>
+      }).call(void 0);     
+           
+      
+      </script>
+           
                 
         </body>
       </html>
